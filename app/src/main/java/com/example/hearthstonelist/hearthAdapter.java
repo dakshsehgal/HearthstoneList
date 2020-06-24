@@ -1,5 +1,6 @@
 package com.example.hearthstonelist;
 
+
 import android.content.Context;
 import android.content.Intent;
 
@@ -8,6 +9,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -30,26 +33,30 @@ import java.util.ArrayList;
 
 import java.util.List;
 
-public class hearthAdapter extends RecyclerView.Adapter<hearthAdapter.hearthViewHolder> {
-    private Context context;
+public class hearthAdapter extends RecyclerView.Adapter<hearthAdapter.hearthViewHolder> implements Filterable {
     private RequestQueue queue;
+    private List<Card> filtered;
+
 
 
     public hearthAdapter(Context context) {
-
-        this.context = context;
-
-
         queue = Volley.newRequestQueue(context);
         loadCards();
+
+        filtered = new ArrayList<>();
+
+    }
+
+    @Override
+    public Filter getFilter() {
+        return new CardFilter();
     }
 
 
     public static class hearthViewHolder extends RecyclerView.ViewHolder {
-        private static final String TAG = "hey";
+
         public LinearLayout row;
         public TextView text;
-
 
 
         public hearthViewHolder(View view) {
@@ -58,21 +65,17 @@ public class hearthAdapter extends RecyclerView.Adapter<hearthAdapter.hearthView
             row = view.findViewById(R.id.row);
             text = view.findViewById(R.id.rowtext);
 
-
             row.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     Card current = (Card) row.getTag();
 
                     Intent intent = new Intent(v.getContext(), rowActivity.class);
-
-
-                    intent.putExtra("name", current.getName());
-                    intent.putExtra("text", current.getCardText());
-                    intent.putExtra("attack", current.getAttack());
-                    intent.putExtra("health", current.getHealth());
-                    intent.putExtra("id", current.getCardID());
+                    intent.putExtra("card", current);
                     v.getContext().startActivity(intent);
+
+
+
                 }
             });
 
@@ -91,19 +94,13 @@ public class hearthAdapter extends RecyclerView.Adapter<hearthAdapter.hearthView
 
     @Override
     public void onBindViewHolder(@NonNull hearthAdapter.hearthViewHolder holder, int position) {
-        Card card = cards.get(position);
-
+        Card card = filtered.get(position);
         holder.text.setText(card.getName());
-
         holder.row.setTag(card);
-
-
     }
 
     public void loadCards() {
         String url = "https://api.hearthstonejson.com/v1/25770/enUS/cards.json";
-
-
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, null, new Response.Listener<JSONArray>() {
             @Override
             public void onResponse(JSONArray response) {
@@ -111,7 +108,6 @@ public class hearthAdapter extends RecyclerView.Adapter<hearthAdapter.hearthView
 
                     for (int i = 0; i < response.length(); i++) {
                         JSONObject card = response.getJSONObject(i);
-
 
                         if (card.has("text") && card.has("attack") && card.has("name") && card.has("health") && card.has("id")) {
 
@@ -121,8 +117,9 @@ public class hearthAdapter extends RecyclerView.Adapter<hearthAdapter.hearthView
                             ));
                         }
                     }
+                    filtered = new ArrayList<>(cards);
 
-                    Log.d("Gergef", "onResponse: this ran" + cards);
+
                     notifyDataSetChanged();
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -143,8 +140,30 @@ public class hearthAdapter extends RecyclerView.Adapter<hearthAdapter.hearthView
 
     @Override
     public int getItemCount() {
-        return cards.size();
+        return filtered.size();
     }
 
 
+    private class CardFilter extends Filter {
+        @Override
+        protected FilterResults performFiltering(CharSequence constraint) {
+            FilterResults results = new FilterResults();
+            ArrayList<Card> filterList = new ArrayList<>();
+            for (Card card : cards) {
+                if (card.getName().toLowerCase().contains(constraint)) {
+                    filterList.add(card);
+                }
+            }
+            results.values = filterList;
+            results.count = filterList.size();
+            return results;
+        }
+
+        @Override
+        protected void publishResults(CharSequence constraint, FilterResults results) {
+            filtered = (List<Card>) results.values;
+            notifyDataSetChanged();
+
+        }
+    }
 }

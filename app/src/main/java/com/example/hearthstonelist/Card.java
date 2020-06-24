@@ -1,13 +1,15 @@
 package com.example.hearthstonelist;
 
-import android.graphics.drawable.Drawable;
 
-public class Card {
+import java.io.Serializable;
+
+public class Card implements Serializable {
     private String name;
     private String cardText;
     private int attack;
     private int health;
     private String cardID;
+
 
 
     public Card(String name, String cardText, int attack, int health, String cardID) {
@@ -16,6 +18,7 @@ public class Card {
         this.attack = attack;
         this.health = health;
         this.cardID = cardID;
+
 
     }
 
@@ -38,8 +41,6 @@ public class Card {
     public int getHealth() {
         return health;
     }
-
-
 
 
 }
